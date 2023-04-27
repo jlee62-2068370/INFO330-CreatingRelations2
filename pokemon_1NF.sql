@@ -1,24 +1,32 @@
+-- Table drops to keep data clean.
 DROP TABLE IF EXISTS pokemon_1NF;
 DROP TABLE IF EXISTS temp_split;
 DROP TABLE IF EXISTS temp1;
 
-
+-- This is a temporary table that houses the split values of abilities from the
+-- original imported database. The table allows for abilities to be atomic and
+-- follow the rules of 1NF
 CREATE TABLE temp_split AS
 SELECT trim(value) AS ability, pokedex_number
 FROM imported_pokemon_data,
  json_each('["' || replace(abilities, ',', '","') || '"]')
 WHERE ability <> '';
 
-
+-- After spliting, [] and single quotes are left behind, this updates the values
+-- and trims off the unwanted characters..
 UPDATE temp_split
 SET ability = REPLACE(REPLACE(REPLACE(ability, '[', ''), ']', ''),'''', '');
 
-
+-- Creates a temporary copy of the imported database. This way we can manipulate
+-- values without modifying the original copy. Additionally, the temporary table
+-- makes combining tables easier in later steps.
 CREATE TABLE temp1 AS
 SELECT *
 FROM imported_pokemon_data;
 
-
+-- Joins temp_split and temp1 on pokedex_number, this removes the original
+-- 'abilities' column while keeping all subsequent data the same. By doing this,
+-- all values in pokemon_1NF are atomic.
 CREATE TABLE pokemon_1NF AS
 SELECT ts.ability,
  t1.against_bug,
@@ -62,6 +70,7 @@ SELECT ts.ability,
 FROM temp_split ts
 JOIN temp1 t1 ON ts.pokedex_number = t1.pokedex_number;
 
-
+-- Drops the temporary tables, as there is no need for them anymore. Also practices
+-- clean and clear data modeling. 
 DROP TABLE temp1;
 DROP TABLE temp_split;

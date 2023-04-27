@@ -1,7 +1,10 @@
+-- Table drops to keep data clean.
 DROP TABLE IF EXISTS ability_mapping;
 DROP TABLE IF EXISTS abilities;
 DROP TABLE IF EXISTS pokemon_2NF;
 
+-- Creating a new tablenamed pokemon_2NF with pokedex_number as the primary key
+-- and drops the abilities column created in pokemon_1NF
 CREATE TABLE pokemon_2NF (
  pokedex_number INT PRIMARY KEY,
  against_bug REAL,
@@ -42,7 +45,7 @@ CREATE TABLE pokemon_2NF (
  is_legendary INT
 );
 
-
+-- Inserts information into the non-duplicate table from the imported .csv file
 INSERT INTO pokemon_2NF
 SELECT pokedex_number,
  against_bug,
@@ -83,23 +86,29 @@ SELECT pokedex_number,
  is_legendary
 FROM imported_pokemon_data;
 
-
+-- Abilities table houses unique pokemon ability values
 CREATE TABLE abilities (
  ability varchar(50) NOT NULL PRIMARY KEY
 );
 
-
+-- Ability mapping serves as the linking table between pokemon_2NF and abilities.
+-- It is essential to have this table as it removes the many-to-many connection
+-- that may occur between these tables.
 CREATE TABLE ability_mapping (
- pokedex_number INT NOT NULL REFERENCES pokemon_2NF (pokedex_number),
- ability varchar(50) NOT NULL REFERENCES abilities (ability)
+ pokedex_number INT NOT NULL,
+ ability varchar(50) NOT NULL,
+ FOREIGN KEY (pokedex_number) REFERENCES pokemon_2NF (pokedex_number),
+ FOREIGN KEY (ability)  REFERENCES abilities (ability)
 );
 
 
+-- Inserts non-duplicate ability values into the abilities table
 INSERT INTO abilities (ability)
 SELECT DISTINCT n1.ability
 FROM pokemon_1NF n1;
 
-
+-- Inserts atomic abilitity values into the mapping, alonside the pokedex_num
+-- of the pokemon that uses the ability
 INSERT INTO ability_mapping (pokedex_number, ability)
 SELECT n1.pokedex_number, n1.ability
 FROM pokemon_1NF n1;
